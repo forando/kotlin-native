@@ -282,7 +282,8 @@ internal class FunctionReferenceLowering(val context: Context): FileLoweringPass
                 else
                     kFunctionImplSymbol.typeWith(referencedFunction.returnType)
                 functionClass = (if (isKFunction) symbols.kFunctionN(numberOfParameters) else symbols.functionN(numberOfParameters)).owner
-                superTypes += functionClass.typeWith(functionParameterTypes + referencedFunction.returnType)
+                if (samSuperType == null)
+                    superTypes += functionClass.typeWith(functionParameterTypes + referencedFunction.returnType)
                 val lastParameterType = unboundFunctionParameters.lastOrNull()?.type
                 if (lastParameterType?.classifierOrNull != continuationClassSymbol)
                     suspendFunctionClass = null
@@ -292,7 +293,8 @@ internal class FunctionReferenceLowering(val context: Context): FileLoweringPass
                     suspendFunctionClass = symbols.suspendFunctionN(numberOfParameters - 1).owner
                     val suspendFunctionClassTypeParameters = functionParameterTypes.dropLast(1) +
                             (lastParameterType.arguments.single().typeOrNull ?: irBuiltIns.anyNType)
-                    superTypes += suspendFunctionClass.symbol.typeWith(suspendFunctionClassTypeParameters)
+                    if (samSuperType == null)
+                        superTypes += suspendFunctionClass.symbol.typeWith(suspendFunctionClassTypeParameters)
                 }
             }
 

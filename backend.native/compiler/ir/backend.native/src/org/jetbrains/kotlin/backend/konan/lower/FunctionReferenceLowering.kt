@@ -302,11 +302,11 @@ internal class FunctionReferenceLowering(val context: Context): FileLoweringPass
             val functionInvoke = if (isKSuspendFunction)
                 null
             else
-                buildInvokeMethod(functionClass.getInvokeFunction())
+                buildInvokeMethod(functionClass.getInvokeFunction(), putToOverriddenSymbols = samSuperType == null)
             val suspendFunctionInvoke = if (suspendFunctionClass == null)
                 null
             else {
-                buildInvokeMethod(suspendFunctionClass.getInvokeFunction()).also {
+                buildInvokeMethod(suspendFunctionClass.getInvokeFunction(), putToOverriddenSymbols = samSuperType == null).also {
                     if (isKSuspendFunction)
                         it.overriddenSymbols += functionClass.getInvokeFunction().symbol
                 }
@@ -315,7 +315,7 @@ internal class FunctionReferenceLowering(val context: Context): FileLoweringPass
             val sam = samSuperClass?.functions?.single { it.owner.modality == Modality.ABSTRACT }
             if (sam != null) {
                 if (sam.owner.extensionReceiverParameter != null)
-                    buildInvokeMethod(sam.owner)
+                    buildInvokeMethod(sam.owner, putToOverriddenSymbols = true)
                 else {
                     // The signatures of SAM and [invoke] coincide - no need to build additional function.
                     val properInvoke = if (sam.isSuspend)
@@ -413,7 +413,7 @@ internal class FunctionReferenceLowering(val context: Context): FileLoweringPass
             return false
         }
 
-        private fun buildInvokeMethod(superFunction: IrSimpleFunction): IrSimpleFunction =
+        private fun buildInvokeMethod(superFunction: IrSimpleFunction, putToOverriddenSymbols: Boolean): IrSimpleFunction =
             IrFunctionImpl(
                     startOffset, endOffset,
                     DECLARATION_ORIGIN_FUNCTION_REFERENCE_IMPL,
@@ -444,7 +444,8 @@ internal class FunctionReferenceLowering(val context: Context): FileLoweringPass
                             type = parameter.type.substitute(typeArgumentsMap))
                 }
 
-                overriddenSymbols += superFunction.symbol
+                if (putToOverriddenSymbols)
+                    overriddenSymbols += superFunction.symbol
 
                 body = context.createIrBuilder(function.symbol, startOffset, endOffset).irBlockBody(startOffset, endOffset) {
                     +irReturn(
